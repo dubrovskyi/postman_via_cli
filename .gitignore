@@ -1,0 +1,7 @@
+node_modules/
+run_file
+htmlResults.html
+package-lock.json
+docker-compose.yaml
+Jenkinsfile
+

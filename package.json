@@ -1,0 +1,21 @@
+{
+  "name": "newman_test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "hello.js",
+  "scripts": {
+    "start": "node start.js "
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://igoodkit@bitbucket.org/igoodkit/collection.git"
+  },
+  "author": "igoodkit",
+  "license": "ISC",
+  "homepage": "https://bitbucket.org/igoodkit/collection#readme",
+  "dependencies": {
+    "newman": "^4.5.5",
+    "newman-reporter-html": "^1.0.3",
+    "newman-reporter-htmlextra": "^1.8.9"
+  }
+}
