@@ -13,7 +13,15 @@ newman.run({
             darkTheme: true
         }
     }
-}, function (err) {
-    if (err) { throw err; }
-    console.log('collection run complete!');
+}).on('start', function (err, args) { // on start of run, log to console
+    console.log('running a collection...');
+}).on('done', function (err, summary) {
+    if (err || summary.error || summary.run.failures.length > 0) {
+
+        console.error('collection run encountered an error.');
+        process.exit(1);
+    }
+    else {
+        console.log('collection run completed.');
+    }
 });
