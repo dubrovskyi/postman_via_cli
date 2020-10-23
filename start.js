@@ -6,11 +6,14 @@ const coll_env = process.argv[3];
 newman.run({
     collection: require('./' + collection), // can also provide a URL or path to a local JSON file.
     environment: require('./' + coll_env),
-    reporters: 'htmlextra',
+    reporters: ['htmlextra','allure'],
     reporter: {
         htmlextra: {
             export: './htmlResults.html', // If not specified, the file will be written to `newman/` in the current working directory.
             darkTheme: true
+        },
+        allure: {
+            export: 'results/allure'
         }
     }
 }).on('start', function (err, args) { // on start of run, log to console
