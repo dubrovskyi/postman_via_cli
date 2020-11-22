@@ -1,8 +1,13 @@
 #!/bin/bash
-
 # set variables
 FILE=htmlResults.html
 DIR=node_modules
+
+if [ $# -lt 2 ]
+  then
+    echo "Seems like you supplied not enough arguments"
+    exit 1
+fi
 
 echo "check if node_modules dir exists"
 if [ ! -d $DIR ]; then
@@ -15,7 +20,7 @@ if [ -f $FILE ]; then
 fi
 
 echo "run tests"
-npm run start $1 $2
+npm run start $@
 
 # echo "run report in firefox"
 # firefox $FILE
