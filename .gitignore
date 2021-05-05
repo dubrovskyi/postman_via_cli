@@ -3,7 +3,6 @@ run_file
 htmlResults.html
 package-lock.json
 docker-compose.yaml
-Jenkinsfile
 results/*
 *environment*
 *collection*
