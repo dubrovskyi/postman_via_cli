@@ -6,17 +6,12 @@
   "scripts": {
     "start": "node start.js "
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://igoodkit@bitbucket.org/igoodkit/collection.git"
-  },
   "author": "igoodkit",
   "license": "ISC",
-  "homepage": "https://bitbucket.org/igoodkit/collection#readme",
   "dependencies": {
-    "newman": "^4.5.5",
-    "newman-reporter-html": "^1.0.3",
-    "newman-reporter-htmlextra": "^1.8.9",
-    "newman-reporter-allure": "1.0.7"
+    "newman": "^5.3.2",
+    "newman-reporter-html": "^1.0.5",
+    "newman-reporter-htmlextra": "^1.22.11",
+    "newman-reporter-allure": "^2.0.0-beta.25"
   }
 }
