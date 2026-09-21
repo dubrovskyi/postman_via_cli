@@ -1,0 +1,88 @@
+name: newman
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  schedule:
+    # Nightly smoke run at 03:00 UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      collection:
+        description: 'Path in the repo, or a public URL, of the collection to run'
+        required: true
+        default: 'collections/postman-echo.postman_collection.json'
+      environment:
+        description: 'Path of the environment file (leave empty to run without one)'
+        required: false
+        default: 'environments/postman-echo.postman_environment.json'
+      bail:
+        description: 'Stop on the first failure'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run collection
+        # Inputs are passed through the environment rather than interpolated
+        # into the script, so a crafted input cannot inject shell commands.
+        env:
+          COLLECTION: ${{ inputs.collection || 'collections/postman-echo.postman_collection.json' }}
+          ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'environments/postman-echo.postman_environment.json' }}
+          BAIL: ${{ inputs.bail }}
+        run: |
+          args=(--collection "$COLLECTION" --reporters cli,htmlextra,allure,junit)
+          if [ -n "$ENVIRONMENT" ]; then
+            args+=(--environment "$ENVIRONMENT")
+          fi
+          if [ "$BAIL" = "true" ]; then
+            args+=(--bail)
+          fi
+          node start.js "${args[@]}"
+
+      - name: Generate Allure report
+        # always() so the report is produced for failing runs too - that is
+        # exactly when it is worth looking at.
+        if: always()
+        run: npm run allure:generate
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-reports-${{ github.run_number }}
+          path: |
+            reports/htmlResults.html
+            reports/junitResults.xml
+            reports/allure-report
+          retention-days: 30
+
+      - name: Publish results to the run summary
+        if: always()
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: reports/junitResults.xml
+          check_name: newman results
+          fail_on_failure: false
+          require_tests: true

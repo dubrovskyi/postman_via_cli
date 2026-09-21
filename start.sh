@@ -1,26 +1,34 @@
-#!/bin/bash
-# set variables
-FILE=htmlResults.html
-DIR=node_modules
+#!/usr/bin/env bash
+#
+# Convenience wrapper around start.js: installs dependencies if needed,
+# clears the previous reports and runs the collection.
+#
+#   ./start.sh <collection> [environment] [extra newman options]
+#   ./start.sh -c collections/api.json -e environments/stage.json --bail
+#
+set -euo pipefail
 
-if [ $# -lt 2 ]
-  then
-    echo "Seems like you supplied not enough arguments"
-    exit 1
+cd "$(dirname "$0")"
+
+REPORT_DIR=reports
+
+if [ $# -lt 1 ]; then
+  echo "Seems like you supplied not enough arguments" >&2
+  node start.js --help
+  exit 2
 fi
 
-echo "check if node_modules dir exists"
-if [ ! -d $DIR ]; then
-  npm install  
+if [ ! -d node_modules ]; then
+  echo "installing dependencies"
+  if [ -f package-lock.json ]; then
+    npm ci
+  else
+    npm install
+  fi
 fi
 
-echo "check if htmlResults file exists"
-if [ -f $FILE ]; then
-  rm $FILE
-fi
+echo "cleaning previous reports"
+rm -rf "$REPORT_DIR"
 
 echo "run tests"
-npm run start $@
-
-# echo "run report in firefox"
-# firefox $FILE
+node start.js "$@"

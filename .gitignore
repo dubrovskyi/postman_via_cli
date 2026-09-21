@@ -1,8 +1,10 @@
-node_modules/*
-run_file
+node_modules/
+reports/
+allure-report/
+allure-results/
+.env
+npm-debug.log*
+
+# Legacy output locations, kept so old checkouts stay clean
 htmlResults.html
-package-lock.json
-docker-compose.yaml
-results/*
-*environment*
-*collection*
+results/
