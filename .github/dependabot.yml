@@ -1,0 +1,21 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # newman and its reporters move together; one PR per bump is enough.
+      newman:
+        patterns:
+          - "newman"
+          - "newman-reporter-*"
+    # @faker-js/faker and csv-parse are deliberately NOT ignored: their alerts
+    # are the signal that upstream finally shipped a fix we can pick up.
+    # See the Security section in README.md.
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly

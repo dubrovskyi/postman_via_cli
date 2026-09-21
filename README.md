@@ -118,3 +118,45 @@ environment.
 `Jenkinsfile` covers the same run for a Jenkins instance. It is parameterised
 (`COLLECTION`, `ENVIRONMENT`), publishes the HTML report and needs the
 HTML Publisher and Allure plugins.
+
+## Security
+
+`npm audit` is not clean, and it cannot be: every finding comes from inside
+newman's own dependency tree, not from code in this repo.
+
+What is fixed here, via `overrides` in `package.json` (24 findings down to 7,
+including the only critical one):
+
+| Package | Was | Now | Was reported as |
+| --- | --- | --- | --- |
+| `handlebars` | 4.7.7 / 4.7.8 | 4.7.9 | critical - JS injection via AST type confusion |
+| `lodash` | 4.17.21 | 4.18.1 | high - code injection via `_.template` |
+| `node-forge` | 1.3.1 | 1.4.0 | high - signature forgery, ASN.1 recursion |
+| `underscore` | 1.12.1 | 1.13.8 | high - unbounded recursion DoS |
+| `flatted` | 3.2.6 | 3.4.4 | high - prototype pollution |
+| `uuid` | 9.0.1 | 11.x | moderate - missing buffer bounds check |
+| `qs` | 6.14.2 | 6.16.0 | moderate - DoS via array-limit bypass |
+| `jose` | 4.14.4 | 4.15.9 | moderate - resource exhaustion via crafted JWE |
+
+Every override was verified against a real run: the demo collection, a
+data-driven run, `{{$random*}}` dynamic variables and an HTTPS request all
+still pass.
+
+What is deliberately left alone:
+
+- **`@faker-js/faker` (high)** - `postman-collection` pins `5.5.3` exactly and
+  calls the v5 API (`faker.address.city`, `faker.random.arrayElement`,
+  `faker.datatype.number`). The fix only exists in 10.6.0, where those names are
+  gone, so forcing it breaks every `{{$random*}}` variable. The advisory is
+  about `helpers.fake()` executing a crafted template - reachable only if you
+  feed untrusted input into a dynamic variable.
+- **`csv-parse` (moderate)** - the fix is in 7.0.2, newman calls the v4
+  callback API. Forcing it fails the run outright with
+  `TypeError: parseCsv is not a function`. Only reachable through
+  `--iteration-data` with an untrusted CSV.
+
+The remaining `newman`, `postman-*` and `newman-reporter-htmlextra` alerts are
+transitive consequences of those two and will clear when upstream bumps them.
+
+Do not run `npm audit fix --force`: its proposed "fix" is newman 4.6.1, a
+three-major downgrade.

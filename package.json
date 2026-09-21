@@ -21,5 +21,15 @@
   },
   "devDependencies": {
     "allure": "^3.18.0"
+  },
+  "overrides": {
+    "handlebars": "^4.7.9",
+    "lodash": "^4.18.1",
+    "flatted": "^3.4.4",
+    "underscore": "^1.13.8",
+    "node-forge": "^1.4.0",
+    "qs": "^6.16.0",
+    "jose": "^4.15.9",
+    "uuid": "^11.1.1"
   }
 }
