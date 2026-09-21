@@ -111,7 +111,7 @@ jobs:
 
       - name: Publish results to the run summary
         if: always()
-        uses: mikepenz/action-junit-report@v5
+        uses: mikepenz/action-junit-report@v6
         with:
           report_paths: reports/junitResults.xml
           check_name: newman results (${{ matrix.name }})
