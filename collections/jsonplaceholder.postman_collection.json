@@ -1,0 +1,462 @@
+{
+	"info": {
+		"name": "jsonplaceholder api",
+		"description": "A realistic example suite against https://jsonplaceholder.typicode.com.\n\nCovers: schema validation, a chained create/update/delete flow that passes an id\nbetween requests, query parameters, and negative cases.\n\nNote: JSONPlaceholder only *simulates* writes. POST answers 201 with id 101 but\nstores nothing, and PUT/DELETE answer 200 without persisting. The tests below\ntherefore assert the response contract, never persistence - asserting persistence\nhere would either fail or pass for the wrong reason.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"event": [
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Applies to every request in the collection.",
+					"pm.test('responds in under 5s', function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(5000);",
+					"});",
+					"",
+					"pm.test('responds with json', function () {",
+					"    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+					"});"
+				]
+			}
+		}
+	],
+	"item": [
+		{
+			"name": "smoke",
+			"item": [
+				{
+					"name": "GET /posts returns the list",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('returns 100 posts', function () {",
+									"    const body = pm.response.json();",
+									"    pm.expect(body).to.be.an('array').with.lengthOf(100);",
+									"});",
+									"",
+									"pm.test('every post matches the schema', function () {",
+									"    const schema = {",
+									"        type: 'array',",
+									"        items: {",
+									"            type: 'object',",
+									"            required: ['userId', 'id', 'title', 'body'],",
+									"            properties: {",
+									"                userId: { type: 'integer' },",
+									"                id:     { type: 'integer' },",
+									"                title:  { type: 'string' },",
+									"                body:   { type: 'string' }",
+									"            }",
+									"        }",
+									"    };",
+									"    pm.expect(pm.response.json()).to.have.jsonSchema(schema);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/posts",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"posts"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GET /posts?_limit=5 honours the query param",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('returns exactly 5 posts', function () {",
+									"    pm.expect(pm.response.json()).to.be.an('array').with.lengthOf(5);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/posts?_limit=5",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"posts"
+							],
+							"query": [
+								{
+									"key": "_limit",
+									"value": "5"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GET /posts/1/comments belong to that post",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('every comment points back at post 1', function () {",
+									"    const comments = pm.response.json();",
+									"    pm.expect(comments).to.be.an('array').that.is.not.empty;",
+									"    comments.forEach(function (c) {",
+									"        pm.expect(c.postId, 'postId of comment ' + c.id).to.eql(1);",
+									"    });",
+									"});",
+									"",
+									"pm.test('every comment has a plausible email', function () {",
+									"    pm.response.json().forEach(function (c) {",
+									"        pm.expect(c.email, 'email of comment ' + c.id).to.match(/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/);",
+									"    });",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/posts/1/comments",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"posts",
+								"1",
+								"comments"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "crud",
+			"description": "A chained flow: the id produced by the create step is carried into the next\nrequests through a collection variable.",
+			"item": [
+				{
+					"name": "POST /posts creates a post",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Generate the payload here so the assertions can compare against it.",
+									"pm.collectionVariables.set('newTitle', 'post from newman ' + pm.variables.replaceIn('{{$randomInt}}'));",
+									"pm.collectionVariables.set('newBody', pm.variables.replaceIn('{{$randomLoremSentence}}'));"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('echoes back what we sent', function () {",
+									"    const body = pm.response.json();",
+									"    pm.expect(body.title).to.eql(pm.collectionVariables.get('newTitle'));",
+									"    pm.expect(body.body).to.eql(pm.collectionVariables.get('newBody'));",
+									"    pm.expect(body.userId).to.eql(1);",
+									"});",
+									"",
+									"pm.test('assigns an id', function () {",
+									"    pm.expect(pm.response.json().id).to.be.a('number');",
+									"});",
+									"",
+									"// Hand the id to the next request in the folder.",
+									"pm.collectionVariables.set('postId', pm.response.json().id);",
+									"console.log('created post id:', pm.collectionVariables.get('postId'));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"{{newTitle}}\",\n    \"body\": \"{{newBody}}\",\n    \"userId\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/posts",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"posts"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GET /posts/{{postId}} uses the id from the create step",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// This is the point of the folder: the id is not hardcoded, it comes from",
+									"// the collection variable the create step set.",
+									"pm.test('the request actually used the captured id', function () {",
+									"    // postId comes back as a number, so normalise before the emptiness check -",
+									"    // chai's .empty throws on a number.",
+									"    const id = String(pm.collectionVariables.get('postId'));",
+									"    pm.expect(id, 'postId was never set').to.not.be.empty;",
+									"    pm.expect(pm.request.url.path, 'id was not interpolated into the path').to.include(id);",
+									"});",
+									"",
+									"// JSONPlaceholder does not persist writes, so the id it just handed out is",
+									"// not retrievable. Against a real backend this would be 200 and you would",
+									"// assert the payload here instead.",
+									"pm.test('mock does not persist the created post (404)', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/posts/{{postId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"posts",
+								"{{postId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "PUT /posts/1 updates a post",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('returns the updated representation', function () {",
+									"    const body = pm.response.json();",
+									"    pm.expect(body.id).to.eql(1);",
+									"    pm.expect(body.title).to.eql('updated by newman');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 1,\n    \"title\": \"updated by newman\",\n    \"body\": \"updated body\",\n    \"userId\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/posts/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"posts",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DELETE /posts/1 removes a post",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"// JSONPlaceholder answers with an empty object and keeps the post. Asserting",
+									"// a later 404 here would be testing the mock, not the contract.",
+									"pm.test('returns an empty body', function () {",
+									"    pm.expect(pm.response.json()).to.eql({});",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/posts/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"posts",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "negative",
+			"item": [
+				{
+					"name": "GET /posts/999999 is not found",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"",
+									"pm.test('body carries no post', function () {",
+									"    pm.expect(pm.response.json()).to.eql({});",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/posts/999999",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"posts",
+								"999999"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GET /nope is not found",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/nope",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"nope"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "postId",
+			"value": ""
+		},
+		{
+			"key": "newTitle",
+			"value": ""
+		},
+		{
+			"key": "newBody",
+			"value": ""
+		}
+	]
+}

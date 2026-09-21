@@ -17,8 +17,30 @@ npm ci
 ```
 
 The wrapper installs dependencies on first run, wipes the previous reports and
-runs the collection. The demo collection hits postman-echo.com, so a green run
-means the whole chain works.
+runs the collection. A green run means the whole chain works.
+
+## The bundled collections
+
+| Collection | What it is for |
+| --- | --- |
+| `collections/postman-echo.postman_collection.json` | Minimal smoke test against postman-echo.com - 6 assertions, proves the setup works |
+| `collections/jsonplaceholder.postman_collection.json` | A fuller worked example against jsonplaceholder.typicode.com - 9 requests, 38 assertions |
+
+The JSONPlaceholder suite is meant to be read as a template for your own API. It
+shows the things a real suite needs:
+
+- **collection-level tests** that apply to every request (response time, content type)
+- **JSON schema validation** with `pm.expect(...).to.have.jsonSchema(...)`
+- **a chained flow** - the `crud` folder captures the id returned by the create
+  step into a collection variable and interpolates it into the next request's URL
+- **query parameters**, **negative cases** (404s), and a pre-request script that
+  builds the payload
+
+One honest caveat is baked into it: JSONPlaceholder only *simulates* writes.
+`POST` answers `201` with id `101` but stores nothing, so the follow-up `GET`
+asserts the `404` and says in a comment that a real backend would return `200`
+and assert the payload. Tests that claim more than the API actually does are
+worse than no tests.
 
 ## Adding your own collection
 
@@ -88,11 +110,17 @@ npm run allure:open
 
 ## CI
 
-`.github/workflows/newman.yml` runs the collection on every push to `master`,
-on pull requests, nightly at 03:00 UTC, and on demand.
+`.github/workflows/newman.yml` runs **every collection in `collections/`** on
+each push to `master`, on pull requests, nightly at 03:00 UTC, and on demand.
+Each collection runs as its own matrix job, so one red suite does not hide the
+others.
 
-To run it manually against another collection: **Actions → newman → Run
-workflow**, then fill in the collection and environment paths.
+To run a single collection manually: **Actions → newman → Run workflow**, then
+fill in the collection and environment paths. A manual run targets only what you
+name there.
+
+To add a collection to the matrix, add a pair to the `plan` job's `include`
+list.
 
 Reports are uploaded as build artifacts for 30 days, including for failed runs,
 and the assertion results are published to the run summary.
