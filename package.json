@@ -13,7 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "newman": "^6.2.2",
-    "newman-reporter-allure": "^3.12.2",
+    "newman-reporter-allure": "^3.13.0",
     "newman-reporter-htmlextra": "^1.23.1"
   },
   "engines": {
