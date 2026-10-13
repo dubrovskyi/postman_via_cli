@@ -20,7 +20,7 @@
     "node": ">=18"
   },
   "devDependencies": {
-    "allure": "^3.18.0"
+    "allure": "^3.20.1"
   },
   "overrides": {
     "handlebars": "^4.7.9",
